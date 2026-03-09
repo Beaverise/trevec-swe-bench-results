@@ -1,5 +1,7 @@
 # Trevec: SWE-bench Lite Benchmark Results
 
+**[trevec.dev](https://trevec.dev)** — Deterministic code context for AI agents. Local-first, AST-graph retrieval.
+
 This repository contains the official evaluation artifacts for **Trevec**, a deterministic, AST-graph retrieval engine designed for AI coding agents.
 
 Trevec is closed-source infrastructure. We are publishing these artifacts to provide reproducible, transparent proof of our retrieval quality, cost efficiency, and accuracy on the [SWE-bench Lite](https://www.swebench.com/lite.html) dataset (300 instances).
