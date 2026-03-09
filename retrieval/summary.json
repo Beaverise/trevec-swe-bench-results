@@ -1,0 +1,19 @@
+{
+  "n": 300,
+  "recall@1": 0.42333333333333334,
+  "recall@3": 0.57,
+  "recall@5": 0.6066666666666667,
+  "recall@10": 0.6066666666666667,
+  "hit@1": 0.42333333333333334,
+  "hit@3": 0.57,
+  "hit@5": 0.6066666666666667,
+  "hit@10": 0.6066666666666667,
+  "mrr@10": 0.4975555555555556,
+  "query_latency_p50_ms": 40.3,
+  "query_latency_p95_ms": 59.8,
+  "query_latency_mean_ms": 41.0,
+  "index_time_p50_s": 131.4,
+  "index_time_p95_s": 213.1,
+  "avg_files_returned": 5.3,
+  "avg_tokens_returned": 3997.0
+}

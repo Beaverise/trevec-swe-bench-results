@@ -2,11 +2,45 @@
 
 This repository contains the official evaluation artifacts for **Trevec**, a deterministic, AST-graph retrieval engine designed for AI coding agents.
 
-Trevec is closed-source infrastructure. We are publishing these prediction artifacts to provide reproducible, transparent proof of our retrieval quality, cost efficiency, and accuracy on the [SWE-bench Lite](https://www.swebench.com/lite.html) dataset.
+Trevec is closed-source infrastructure. We are publishing these artifacts to provide reproducible, transparent proof of our retrieval quality, cost efficiency, and accuracy on the [SWE-bench Lite](https://www.swebench.com/lite.html) dataset (300 instances).
 
-## V5 Run Summary (March 2026)
+We report two benchmarks:
 
-In our V5 run across all 300 instances of SWE-bench Lite, Trevec achieved a **35.0% end-to-end resolve rate** using a single retrieval pass per instance — no multi-step `grep`, `find`, or `read_file` agent loops.
+1. **Retrieval Benchmark** — measures how well Trevec identifies the correct source file(s) from a natural-language issue description, with no LLM involved.
+2. **End-to-End Benchmark** — measures how many issues Trevec + an LLM can fully resolve (generate a correct patch) in a single retrieval pass with no agent loops.
+
+---
+
+## Retrieval Benchmark (300 instances)
+
+Given only the problem statement from each SWE-bench Lite instance, Trevec retrieves a ranked list of code files. We measure whether the gold file (the file actually modified by the human patch) appears in the top-K results.
+
+| Metric | Result |
+| :--- | :--- |
+| **Recall@1** | **42.3%** |
+| **Recall@3** | **57.0%** |
+| **Recall@5** | **60.7%** |
+| **MRR@10** | **0.498** |
+| **Avg. Retrieval Latency** | 40 ms |
+| **Avg. Files Returned** | 5.3 |
+| **Avg. Tokens Returned** | 3,997 |
+
+Every instance in SWE-bench Lite has exactly one gold file. Recall@K equals Hit@K for this dataset.
+
+### Retrieval Artifacts
+
+In the [`retrieval/`](retrieval/) directory:
+
+| File | Description |
+|:-----|:------------|
+| `predictions.jsonl` | Per-instance results: `instance_id`, `gold_files`, `pred_files`, retrieval metrics, latency |
+| `summary.json` | Aggregate metrics across all 300 instances |
+
+---
+
+## End-to-End Benchmark (300 instances)
+
+Trevec retrieves context for each issue, then a single LLM call generates a patch. No agent loops, no iterative file reading, no shell commands. One retrieval pass, one LLM call (with up to one retry on failure).
 
 | Metric | Result |
 | :--- | :--- |
@@ -22,9 +56,9 @@ In our V5 run across all 300 instances of SWE-bench Lite, Trevec achieved a **35
 | Repository | Resolved | Evaluated | Rate |
 |:-----------|:---------|:----------|:-----|
 | astropy/astropy | 4 | 5 | 80% |
-| django/django | 48 | 75 | 64% |
 | psf/requests | 4 | 6 | 67% |
 | pydata/xarray | 2 | 3 | 67% |
+| django/django | 48 | 75 | 64% |
 | sphinx-doc/sphinx | 5 | 8 | 62% |
 | pytest-dev/pytest | 7 | 12 | 58% |
 | matplotlib/matplotlib | 5 | 9 | 56% |
@@ -33,17 +67,9 @@ In our V5 run across all 300 instances of SWE-bench Lite, Trevec achieved a **35
 | mwaskom/seaborn | 1 | 4 | 25% |
 | pallets/flask | 0 | 3 | 0% |
 
-### Key Findings
+### End-to-End Artifacts
 
-1. **Cost Efficiency:** By serving the exact required code context in a single 62ms retrieval pass, Trevec achieves competitive resolve rates at ~$0.22/instance — an order of magnitude cheaper than multi-agent approaches that rely on iterative file exploration.
-
-2. **Retrieval-First Architecture:** Trevec's hybrid retrieval (BM25 + local embeddings over AST-derived signals) combined with deterministic graph expansion delivers precise, token-efficient context. Average context size was ~15,000 tokens per query — enough for the LLM to locate and fix bugs without blind exploration.
-
-3. **Test-File Penalty:** SWE-bench issue descriptions frequently match test files that describe symptoms rather than source files containing the bug. Trevec's configurable path-based penalty system suppresses test file pollution in retrieval results.
-
-## Artifacts
-
-In the [`v5_lite_300/`](v5_lite_300/) directory:
+In the [`end_to_end/`](end_to_end/) directory:
 
 | File | Description |
 |:-----|:------------|
@@ -52,22 +78,32 @@ In the [`v5_lite_300/`](v5_lite_300/) directory:
 
 ### Reproducing the Evaluation
 
-The evaluation was run using the [official SWE-bench harness](https://github.com/princeton-nlp/SWE-bench):
+The end-to-end evaluation was run using the [official SWE-bench harness](https://github.com/princeton-nlp/SWE-bench):
 
 ```bash
 python -m swebench.harness.run_evaluation \
     --predictions_path predictions.jsonl \
-    --run_id trevec_v5 \
+    --run_id trevec \
     --max_workers 8 \
     --cache_level env \
     --timeout 1800
 ```
 
+---
+
+## Key Findings
+
+1. **Cost Efficiency:** By serving the exact required code context in a single 40ms retrieval pass, Trevec achieves competitive resolve rates at ~$0.22/instance — an order of magnitude cheaper than multi-agent approaches that rely on iterative file exploration.
+
+2. **Retrieval-First Architecture:** Trevec's hybrid retrieval (BM25 + local embeddings over AST-derived signals) combined with deterministic graph expansion delivers precise, token-efficient context. Average context size is ~4,000 tokens per query — enough for the LLM to locate and fix bugs without blind exploration.
+
+3. **No Agent Loops Required:** The end-to-end pipeline uses a single retrieval pass followed by a single LLM call. There is no multi-turn conversation, no file browsing, and no shell command execution. This makes the pipeline fast, reproducible, and cheap.
+
 ## Methodology
 
 - **Retrieval:** Each SWE-bench instance's problem statement is used as a natural-language query to Trevec, which returns a ranked set of code nodes (functions, classes, methods) with file paths and byte spans.
-- **Patch Generation:** The retrieved context is provided to Claude Sonnet 4.6 in a single-attempt pipeline with adaptive extended thinking. The LLM generates a unified diff patch.
-- **No agent loops:** The pipeline does not use iterative file reading, shell commands, or multi-turn agent conversations. One retrieval pass, one LLM call (with up to one retry on failure).
+- **Hybrid Search:** BM25 full-text search and local embedding vector search run in parallel, merged via Reciprocal Rank Fusion (RRF). Results are filtered, penalized for test files, and assembled under a token budget with graph-based expansion.
+- **Patch Generation (end-to-end only):** The retrieved context is provided to Claude Sonnet 4.6 in a single-attempt pipeline with adaptive extended thinking. The LLM generates a unified diff patch.
 - **Evaluation:** Patches are evaluated using the official SWE-bench Docker harness, which applies each patch to the correct repository version and runs the project's test suite.
 
 ## About Trevec
