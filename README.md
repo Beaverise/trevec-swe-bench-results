@@ -19,13 +19,13 @@ Given only the problem statement from each SWE-bench Lite instance, Trevec retri
 
 | Metric | Result |
 | :--- | :--- |
-| **Recall@1** | **42.3%** |
-| **Recall@3** | **57.0%** |
-| **Recall@5** | **60.7%** |
-| **MRR@10** | **0.498** |
-| **Avg. Retrieval Latency** | 40 ms |
-| **Avg. Files Returned** | 5.3 |
-| **Avg. Tokens Returned** | 3,997 |
+| **Recall@1** | **42.9%** |
+| **Recall@3** | **57.8%** |
+| **Recall@5** | **61.2%** |
+| **MRR@10** | **0.503** |
+| **Avg. Retrieval Latency** | 45 ms |
+| **Avg. Files Returned** | 5.2 |
+| **Avg. Tokens Returned** | 3,996 |
 
 Every instance in SWE-bench Lite has exactly one gold file. Recall@K equals Hit@K for this dataset.
 
@@ -46,27 +46,29 @@ Trevec retrieves context for each issue, then a single LLM call generates a patc
 
 | Metric | Result |
 | :--- | :--- |
-| **Total Resolved** | **105 / 300 (35.0%)** |
-| **Patch Success Rate** | 56.5% (105 / 186 patches generated) |
-| **Avg. Retrieval Latency** | 62 ms |
-| **Avg. Cost per Instance** | $0.22 |
-| **Total Run Cost** | ~$66 |
-| **LLM** | Claude Sonnet 4.6 (single-attempt) |
+| **Total Resolved** | **112 / 300 (37.3%)** |
+| **Patch Success Rate** | 39.7% (112 / 282 patches generated) |
+| **Patch Generation Rate** | 94.0% (282 / 300) |
+| **Avg. Retrieval Latency** | 46 ms |
+| **Avg. Cost per Instance** | $0.14 |
+| **Total Run Cost** | ~$41 |
+| **LLM** | Claude Sonnet 4.6 (adaptive thinking) |
 
 ### Per-Repository Breakdown
 
 | Repository | Resolved | Evaluated | Rate |
 |:-----------|:---------|:----------|:-----|
-| astropy/astropy | 4 | 5 | 80% |
-| psf/requests | 4 | 6 | 67% |
-| pydata/xarray | 2 | 3 | 67% |
-| django/django | 48 | 75 | 64% |
-| sphinx-doc/sphinx | 5 | 8 | 62% |
-| pytest-dev/pytest | 7 | 12 | 58% |
-| matplotlib/matplotlib | 5 | 9 | 56% |
-| sympy/sympy | 21 | 43 | 49% |
-| scikit-learn/scikit-learn | 8 | 17 | 47% |
+| astropy/astropy | 4 | 6 | 67% |
+| scikit-learn/scikit-learn | 12 | 22 | 55% |
+| django/django | 49 | 100 | 49% |
+| pydata/xarray | 2 | 5 | 40% |
+| sphinx-doc/sphinx | 6 | 15 | 40% |
+| pytest-dev/pytest | 6 | 16 | 38% |
+| matplotlib/matplotlib | 8 | 22 | 36% |
+| psf/requests | 2 | 6 | 33% |
+| sympy/sympy | 21 | 73 | 29% |
 | mwaskom/seaborn | 1 | 4 | 25% |
+| pylint-dev/pylint | 1 | 4 | 25% |
 | pallets/flask | 0 | 3 | 0% |
 
 ### End-to-End Artifacts
@@ -95,7 +97,7 @@ python -m swebench.harness.run_evaluation \
 
 ## Key Findings
 
-1. **Cost Efficiency:** By serving the exact required code context in a single 40ms retrieval pass, Trevec achieves competitive resolve rates at ~$0.22/instance — an order of magnitude cheaper than multi-agent approaches that rely on iterative file exploration.
+1. **Cost Efficiency:** By serving the exact required code context in a single 40ms retrieval pass, Trevec achieves competitive resolve rates at ~$0.14/instance — an order of magnitude cheaper than multi-agent approaches that rely on iterative file exploration.
 
 2. **Retrieval-First Architecture:** Trevec's hybrid retrieval (BM25 + local embeddings over AST-derived signals) combined with deterministic graph expansion delivers precise, token-efficient context. Average context size is ~4,000 tokens per query — enough for the LLM to locate and fix bugs without blind exploration.
 
